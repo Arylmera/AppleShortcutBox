@@ -40,7 +40,9 @@ def build():
         # implicit input to the If below.
         FormatDateAction({"format": "H"}),
         # If hour < 7 ...
-        IfActionExt({"condition": "Is Less Than", "compare_with": "7"}),
+        # Numeric conditions use WFNumberValue (compare_with_number),
+        # NOT WFConditionalActionString (compare_with). Verified via cherri.
+        IfActionExt({"condition": "Is Less Than", "compare_with_number": 7}),
         # Open Waze.
         URLAction({"url": "waze://"}),
         OpenURLAction(),

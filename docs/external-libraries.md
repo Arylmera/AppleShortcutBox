@@ -42,6 +42,32 @@ Python-dict-builder approach.
 
 ---
 
+## 1.5. `cherri` (Go compiler — most complete schema source)
+
+- Repo: https://github.com/electrikmilk/cherri
+- Status: actively maintained Go compiler that emits `.shortcut` files
+  from a custom DSL ("cherri lang").
+- Last cloned to `/tmp/cherri` on 2026-04-28.
+
+**What's useful here**
+
+`shortcutgen.go` and `decompile.go` are by far the most complete
+reverse-engineered reference for the actual parameter keys iOS uses.
+Critically, cherri handles cases other libraries don't:
+
+- **Numeric If conditions**: `WFNumberValue` (and `WFAnotherNumber` for
+  range comparisons) — see `shortcutgen.go:960-966`. python-shortcuts
+  and shortcuts-toolkit both miss this; both libraries silently use
+  `WFConditionalActionString` for everything, which causes the GUI to
+  render an empty "Number" placeholder when the operator is numeric.
+
+How we use it: when the schema for a particular action's variant is
+ambiguous between python-shortcuts and shortcuts-toolkit, cherri is
+usually the tiebreaker. Search `/tmp/cherri/shortcutgen.go` for the
+`WFKey` you're trying to verify.
+
+---
+
 ## 2. `shortcuts-toolkit` (JavaScript / Node)
 
 - Repo: https://github.com/drewburchfield/shortcuts-toolkit

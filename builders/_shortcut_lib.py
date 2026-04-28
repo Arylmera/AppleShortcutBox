@@ -33,7 +33,13 @@ if not hasattr(plistlib, "Data"):
     plistlib.Data = lambda data: data  # type: ignore[attr-defined]
 
 from shortcuts import FMT_SHORTCUT, Shortcut
-from shortcuts.actions.base import BaseAction, ChoiceField, GroupIDField, VariablesField
+from shortcuts.actions.base import (
+    BaseAction,
+    ChoiceField,
+    GroupIDField,
+    IntegerField,
+    VariablesField,
+)
 
 # Re-export the upstream action classes that builders use directly.
 from shortcuts.actions import (  # noqa: F401
@@ -70,12 +76,21 @@ CONDITION_OPERATORS = (
 class IfActionExt(BaseAction):
     """If action with the full WFCondition operator set.
 
-    Upstream's `IfAction` only exposes Equals/Contains. This subclass mirrors
-    its plist layout but accepts every operator iOS supports.
+    Upstream's `IfAction` only exposes Equals/Contains and only emits the
+    string-comparison field `WFConditionalActionString`. This subclass adds:
 
-    The If's input is implicit — it operates on the previous action's output.
-    Use a Set Variable upstream if you need to test something other than the
-    immediately-prior result.
+      - The full operator enum (see `CONDITION_OPERATORS`).
+      - `compare_with_number` → `WFNumberValue`, the field iOS expects when
+        the operator is numeric ("Is Less Than", "Is Greater Than", "Equals"
+        on numbers). String operators ("Contains", "Begins With", …) keep
+        using `compare_with` → `WFConditionalActionString`.
+
+    Pick whichever field matches your operator. Verified via the cherri
+    compiler's source (electrikmilk/cherri, shortcutgen.go:960-966).
+
+    The If's input is implicit — it operates on the previous action's
+    output. Insert a Set Variable upstream if you need to test something
+    other than the immediately-prior result.
     """
 
     itype = "is.workflow.actions.conditional"
@@ -88,7 +103,8 @@ class IfActionExt(BaseAction):
         choices=CONDITION_OPERATORS,
         default="Equals",
     )
-    compare_with = VariablesField("WFConditionalActionString")
+    compare_with = VariablesField("WFConditionalActionString", required=False)
+    compare_with_number = IntegerField("WFNumberValue", required=False)
     group_id = GroupIDField("GroupingIdentifier")
 
     default_fields = {"WFControlFlowMode": 0}

@@ -118,14 +118,19 @@ A single identifier serves all three roles, distinguished by
 | Parameter | Type | Notes |
 |---|---|---|
 | `WFCondition` | enum string | One of: `Equals`, `Contains`, `Is Greater Than`, `Is Less Than`, `Begins With`, `Ends With`, `Has Any Value`, `Does Not Have Any Value`. STRING, not int. |
-| `WFConditionalActionString` | string or variable ref | The value to compare against. (Note: NOT `WFNumberValue`.) |
+| `WFConditionalActionString` | string or variable ref | Comparison value when the operator is a STRING operator (`Equals`, `Contains`, `Begins With`, `Ends With`). |
+| `WFNumberValue` | number | Comparison value when the operator is a NUMERIC operator (`Is Less Than`, `Is Greater Than`, and `Equals`-on-numbers). Bare integer in the plist, no `WFTextTokenString` wrapping. |
+| `WFAnotherNumber` | number | Second comparison value, only for "is between" style operators (range checks). |
 | `WFInput` | variable ref | Optional. The input to test. If omitted, the If operates on the previous action's output. |
 | `GroupingIdentifier` | UUID string | Same UUID across the matching `If` start, `Else`, and `End If` actions. |
 | `WFControlFlowMode` | int | `0` = If (start), `1` = Else (middle), `2` = End If. |
 
-For numeric comparison, set `WFConditionalActionString` to the literal
-number as a string (e.g. `"7"`); `Is Less Than` compares numerically
-when both operands look like numbers.
+⚠️ **Pick the right comparison field for the operator.** Numeric
+operators silently render as an empty "Number" placeholder in the GUI
+when you put the value in `WFConditionalActionString` instead of
+`WFNumberValue` — that's exactly what bit `carplay-morning v2`.
+Verified via the [cherri](https://github.com/electrikmilk/cherri)
+compiler's `shortcutgen.go:960-966`.
 
 ### `is.workflow.actions.url` 🔁 — URL
 

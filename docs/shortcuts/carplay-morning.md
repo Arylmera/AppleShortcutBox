@@ -47,15 +47,25 @@ numbers.
 - **Waze must be installed**, signed in, and have notification/location permissions set up the way you normally use it.
 - The hour test uses the device's local timezone.
 
-## v2 — built on python-shortcuts (2026-04-28)
+## Iteration history
 
-Rewritten on top of python-shortcuts after the v1 attempt produced an
-If with no bound condition. v1 issues, all corrected:
+**v1** (rolled by hand): the If had `WFCondition: 2` (integer guess) and
+`WFNumberValue: 7` plus a useless Number coercion action. Imported but
+the GUI showed the If with no bound condition.
 
-- v1 used `WFCondition: 2` (integer); the actual schema is `WFCondition: "Is Less Than"` (string).
-- v1 used `WFNumberValue` for the comparison value; the actual schema uses `WFConditionalActionString`.
-- v1 used `WFInput` on Open URL; the field is `WFURL` (or implicit-from-previous-output, which is what we now use).
-- v1 inserted a Number coercion action; that action takes a literal number and doesn't coerce strings — it's not needed here at all.
+**v2** (python-shortcuts): switched the If to `WFCondition: "Is Less
+Than"` (string) and put the comparison value in `WFConditionalActionString`
+because that's what python-shortcuts and shortcuts-toolkit both
+documented. Imported and showed `If Formatted Date is less than Number`
+— but the "Number" was empty because string-comparison field doesn't
+populate the numeric input slot.
+
+**v3** (this version): for numeric operators the comparison value goes
+in `WFNumberValue`, NOT `WFConditionalActionString`. Verified via the
+[cherri](https://github.com/electrikmilk/cherri) compiler's source.
+Both libraries miss this distinction; cherri has it. We taught
+`IfActionExt` about both fields so future builders pick the right one
+based on the operator.
 
 ## Date created
 
