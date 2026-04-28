@@ -21,6 +21,7 @@ source of truth; the `.shortcut` files are regenerable.
     ├── SKILL.md             ← the skill that teaches Claude this workflow
     ├── README.md            ← you are here (well, a copy of you)
     ├── action-reference.md  ← WFWorkflow action identifiers + parameter schemas
+    ├── external-libraries.md ← python-shortcuts + shortcuts-toolkit cross-references
     ├── plist-structure.md   ← top-level plist key reference
     ├── sign-all.sh          ← macOS script: sign everything in raw/ → signed/
     └── shortcuts/           ← one .md per shortcut explaining what it does
@@ -52,16 +53,17 @@ python3 builders/<slug>.py
 
 | Slug | Description | Status |
 |---|---|---|
-| [hello-world](shortcuts/hello-world.md) | Toolchain test: notification + speak text | ✅ Built, awaiting first sign-and-import |
+| [hello-world](shortcuts/hello-world.md) | Toolchain test: notification + speak text | ✅ Built on python-shortcuts |
+| [carplay-morning](shortcuts/carplay-morning.md) | Before 7am: open Waze + Spotify Liked Songs (run from CarPlay-connect automation) | ✅ v2 on python-shortcuts (v1's broken If is fixed) |
 
 ## Requirements
 
 **On your Mac:**
 - macOS 12 or later (for the `shortcuts` CLI)
-- Python 3.10+
-
-**On Claude's side:**
-- Just `plistlib` and `uuid`, both stdlib. No external dependencies.
+- Python 3.9+
+- `pip3 install --user shortcuts` (the
+  [python-shortcuts](https://github.com/alexander-akhmetov/python-shortcuts)
+  library — see [external-libraries.md](external-libraries.md))
 
 ## What this repo does NOT do
 

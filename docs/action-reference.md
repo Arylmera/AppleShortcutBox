@@ -23,6 +23,16 @@ parameter keys into a new entry below.
 
 ---
 
+## Confidence levels
+
+- **✅ Verified** — exported a reference `.shortcut` from the Shortcuts
+  GUI, decoded it, and confirmed the schema in this repo.
+- **🔁 Cross-referenced** — the schema agrees across at least two
+  external sources (see [external-libraries.md](external-libraries.md)),
+  but we have not personally exported a reference yet.
+- **🟡 Best-guess** — community reports only; verify before relying on
+  it in production.
+
 ## Verified actions
 
 ### `is.workflow.actions.notification` — Show Notification
@@ -71,25 +81,96 @@ Status: ✅ Confirmed working in `hello-world` shortcut.
 
 ---
 
-## Actions to document next (placeholders — schemas not yet verified)
+## Cross-referenced actions
 
-The identifiers below are believed correct but their parameter schemas
-have NOT been verified in this repo. When you need one of these, export a
-reference shortcut, verify, and move it to the "Verified actions" section.
+These have agreement across `python-shortcuts` and `shortcuts-toolkit`
+(see [external-libraries.md](external-libraries.md)) but have not yet
+been confirmed by exporting a GUI reference shortcut.
+
+### `is.workflow.actions.date` 🔁 — Current Date
+
+No parameters. Outputs the current date/time.
+
+(Discrepancy: `shortcuts-toolkit` lists this as
+`is.workflow.actions.currentdate`. We default to the python-shortcuts
+spelling. Verify on next reference export.)
+
+### `is.workflow.actions.format.date` 🔁 — Format Date
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `WFDateFormat` | string | When using a *custom* format, this holds the format string itself, e.g. `"H"` for 24h hour-of-day. (Counter-intuitive — see warning below.) |
+| `WFDateFormatStyle` | string | The format mode. For named modes: `"Short"`, `"Medium"`, `"Long"`, `"Relative"`, `"RFC 2822"`, `"ISO 8601"`. For a custom format string in `WFDateFormat`, use `"Custom"`. |
+| `WFDate` | variable ref | Optional. If omitted, operates on the previous action's output. |
+
+⚠️ **The two keys are semantically swapped from what you'd expect.**
+`WFDateFormatStyle` holds the *enum* (`"Custom"`) and `WFDateFormat`
+holds the actual *format string* (`"H"`). This is what python-shortcuts
+emits and what we observed working in the GUI — `shortcuts-toolkit`
+documents these reversed, but its claim doesn't match the binary
+layout we generated and saw rendered correctly. Trust this row.
+
+### `is.workflow.actions.conditional` 🔁 — If / Else / End If
+
+A single identifier serves all three roles, distinguished by
+`WFControlFlowMode`.
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `WFCondition` | enum string | One of: `Equals`, `Contains`, `Is Greater Than`, `Is Less Than`, `Begins With`, `Ends With`, `Has Any Value`, `Does Not Have Any Value`. STRING, not int. |
+| `WFConditionalActionString` | string or variable ref | The value to compare against. (Note: NOT `WFNumberValue`.) |
+| `WFInput` | variable ref | Optional. The input to test. If omitted, the If operates on the previous action's output. |
+| `GroupingIdentifier` | UUID string | Same UUID across the matching `If` start, `Else`, and `End If` actions. |
+| `WFControlFlowMode` | int | `0` = If (start), `1` = Else (middle), `2` = End If. |
+
+For numeric comparison, set `WFConditionalActionString` to the literal
+number as a string (e.g. `"7"`); `Is Less Than` compares numerically
+when both operands look like numbers.
+
+### `is.workflow.actions.url` 🔁 — URL
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `WFURLActionURL` | string | The URL value. Outputs a URL object. |
+
+### `is.workflow.actions.openurl` 🔁 — Open URL
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `WFURL` | string or variable ref | The URL to open. If absent, opens the previous action's output. |
+
+⚠️ The parameter is `WFURL`, not `WFInput`. The `carplay-morning v1`
+builder had this wrong.
+
+### `is.workflow.actions.openapp` 🔁 — Open App
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `WFAppIdentifier` | string | App bundle id (e.g. `"com.spotify.client"`). |
+
+### `is.workflow.actions.number` 🔁 — Number (literal)
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `WFNumberActionNumber` | number | A literal number value. |
+
+⚠️ This action creates a *literal* number constant. It does NOT coerce a
+string to a number. For string→number coercion, just feed the string
+directly into a comparison action — Shortcuts compares numerically when
+both operands are numeric strings.
+
+---
+
+## Best-guess actions (not yet cross-referenced)
 
 | Action | Identifier (best guess) |
 |---|---|
 | Set Variable | `is.workflow.actions.setvariable` |
 | Get Variable | `is.workflow.actions.getvariable` |
-| If | `is.workflow.actions.conditional` |
-| Otherwise / End If | same identifier, different `WFControlFlowMode` |
 | Repeat | `is.workflow.actions.repeat.count` |
 | Repeat with Each | `is.workflow.actions.repeat.each` |
 | Choose from Menu | `is.workflow.actions.choosefrommenu` |
-| URL | `is.workflow.actions.url` |
 | Get Contents of URL | `is.workflow.actions.downloadurl` |
-| Open URL | `is.workflow.actions.openurl` |
-| Open App | `is.workflow.actions.openapp` |
 | Set Playback Destination | `is.workflow.actions.setplaybackdestination` |
 | Play Music | `is.workflow.actions.playmusic` |
 | Set Focus | `is.workflow.actions.setfocus` |

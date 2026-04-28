@@ -16,6 +16,20 @@ Signing requires Apple's macOS-only `shortcuts` CLI; you cannot do it. The user
 runs a single bash script (`docs/sign-all.sh`) on their Mac to sign everything
 in `raw/` and produce signed copies in `signed/`.
 
+## The engine: python-shortcuts (adopted 2026-04-28)
+
+Builders use [`python-shortcuts`](https://github.com/alexander-akhmetov/python-shortcuts)
+(`pip3 install --user shortcuts`) as the underlying plist emitter. The wrapper
+in `builders/_shortcut_lib.py` re-exports the action classes we use, adds a
+`plistlib.Data` shim for Python 3.9+, and provides extensions where the
+upstream library is incomplete (notably `IfActionExt` with the full operator
+set, since upstream only exposes Equals/Contains).
+
+When you need a new action, **don't roll your own dict** — use or extend
+the python-shortcuts class. See `_shortcut_lib.py` for the pattern.
+
+Cross-references for verifying schemas: see [external-libraries.md](external-libraries.md).
+
 ## Repo layout this skill assumes
 
 ```
@@ -42,10 +56,9 @@ When the user asks for a new shortcut:
    `raw/<slug>.shortcut`, `signed/<slug>.shortcut`, `docs/shortcuts/<slug>.md`.
 
 2. **Write the builder.** Create `builders/<slug>.py`. It MUST:
-   - Import the shared helpers from `builders/_shortcut_lib.py` (create that file
-     on the first shortcut, reuse it after).
-   - Define a `build()` function returning the workflow dict.
-   - Have a `__main__` block that writes to `raw/<slug>.shortcut`.
+   - Import the action classes and `write_shortcut` from `builders/_shortcut_lib.py`.
+   - Define a `build()` function returning a `list[BaseAction]`.
+   - Have a `__main__` block that calls `write_shortcut(build(), raw/<slug>.shortcut)`.
    - Be runnable as `python3 builders/<slug>.py` from the repo root.
 
 3. **Run the builder** to produce `raw/<slug>.shortcut`. Verify with
@@ -61,7 +74,15 @@ When the user asks for a new shortcut:
 
 5. **Update `docs/README.md`** to add the new shortcut to the index table.
 
-6. **Tell the user the next step:** run `bash docs/sign-all.sh` on their Mac.
+6. **Sign and open it.** This user is on macOS and wants the full
+   build→sign→import flow to happen automatically. After the builder
+   succeeds, run:
+   ```bash
+   bash docs/sign-all.sh <slug>
+   open signed/<slug>.shortcut
+   ```
+   Only fall back to "tell the user to run it" if the sign step fails
+   or you're not on Darwin.
 
 ## Critical rules
 
@@ -112,39 +133,42 @@ them through the official path.
 
 ## What goes in `_shortcut_lib.py`
 
-The helper library lives at `builders/_shortcut_lib.py` and is the single
-source of boilerplate. Minimum contents:
+`_shortcut_lib.py` is now a thin wrapper around `python-shortcuts`. Its
+responsibilities:
 
-- `make_action(identifier: str, params: dict, uuid_str: str | None = None) -> dict`
-  Builds one WFWorkflowAction dict. Auto-generates a UUID if not given.
-  Returns the dict and stashes the UUID in `params["UUID"]`.
+1. **Shim `plistlib.Data`** — python-shortcuts 0.11.0 still uses the
+   removed-in-Python-3.9 `plistlib.Data`. We patch it to a no-op
+   `lambda` that returns its argument unchanged.
+2. **Re-export the action classes builders use** (`NotificationAction`,
+   `DateAction`, `FormatDateAction`, `URLAction`, `OpenURLAction`,
+   `OpenAppAction`, `EndIfAction`, etc.) from a single import surface.
+3. **Define extensions** where upstream is incomplete. Currently:
+   - `IfActionExt` — same plist as upstream's `IfAction` but accepts the
+     full `WFCondition` operator enum (`Is Less Than`, `Is Greater Than`,
+     `Begins With`, `Ends With`, `Has Any Value`, `Does Not Have Any Value`,
+     plus `Equals` and `Contains`).
+4. **Provide `write_shortcut(actions, out_path)`** — wraps the
+   `Shortcut(...).dump(file, FMT_SHORTCUT)` boilerplate plus a round-trip
+   sanity check.
 
-- `new_uuid() -> str` — wraps `str(uuid.uuid4()).upper()`.
-
-- `base_workflow(actions: list[dict], *, icon_color: int = 4274264319, icon_glyph: int = 59511) -> dict`
-  Returns the full top-level workflow dict with sane defaults for
-  `WFWorkflowClientVersion`, `WFWorkflowMinimumClientVersion`, the content
-  item classes list, etc. The builder just provides the actions array.
-
-- `write_shortcut(workflow: dict, out_path: str | Path) -> None`
-  Writes binary plist + prints a one-line confirmation.
-
-- `variable_ref(uuid_str: str, output_name: str = "Output") -> dict`
-  Builds the magic-variable reference dict you embed in another action's
-  parameters to reference an earlier action's output. (Format details in
-  `plist-structure.md`.)
-
-When you need a helper that doesn't exist, ADD it to `_shortcut_lib.py`
-with a docstring. Don't inline.
+When you need a python-shortcuts action that's not yet re-exported from
+`_shortcut_lib.py`, add it to the re-export list. When you need an action
+or operator that python-shortcuts doesn't support, subclass `BaseAction`
+following the `IfActionExt` pattern and document the schema in
+`docs/action-reference.md`.
 
 ## When a builder needs an action you've never used before
 
 1. Look it up in `docs/action-reference.md`.
-2. If it's missing, ask the user to export a reference shortcut. Decode
-   it with `plistlib.load()`, find the action, and add an entry to
-   `action-reference.md` with: identifier, every parameter key seen, the
-   value type, and a short example.
-3. THEN write the builder.
+2. If it's missing, check `docs/external-libraries.md` — odds are
+   python-shortcuts and/or shortcuts-toolkit have the schema. Cross-check
+   them; if they agree, add a "🔁 cross-referenced" row to
+   `action-reference.md` and re-export the class (or subclass it) in
+   `_shortcut_lib.py`.
+3. If even those don't have it, ask the user to export a reference
+   shortcut from the GUI. Decode with `plistlib.load()`, find the
+   action, and add a "✅ verified" entry.
+4. THEN write the builder.
 
 ## Skill invocation checklist (use this every time)
 
@@ -158,7 +182,7 @@ When you start work on a shortcut request, walk through:
 - [ ] Run it, verify the output round-trips through `plistlib.load()`
 - [ ] Write `docs/shortcuts/<slug>.md`
 - [ ] Update `docs/README.md` index
-- [ ] Tell the user: "Run `bash docs/sign-all.sh` on your Mac to sign and import"
+- [ ] Run `bash docs/sign-all.sh <slug>` then `open signed/<slug>.shortcut`
 
 ## Things this skill explicitly does NOT do
 
