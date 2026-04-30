@@ -6,13 +6,16 @@ One-line: when run, opens Waze and starts Spotify Liked Songs — but only if th
 
 1. Gets the current date.
 2. Formats it as the 24-hour hour-of-day (`H` → "0".."23").
-3. Coerces that to a Number.
-4. If the hour is less than 7:
-   - Opens `waze://` (launches Waze).
-   - Opens `spotify:collection:tracks` (Spotify Liked Songs view).
-5. End If.
+3. If the hour is less than 7:
+   - Opens `spotify:collection:tracks` (Spotify Liked Songs) so music starts first.
+   - Opens `waze://` (launches Waze) for navigation/traffic.
+4. End If.
 
 If the hour is ≥ 7, the shortcut does nothing.
+
+The Spotify-then-Waze order matters: Spotify needs to be the foreground
+app briefly to start playback, after which Waze takes over the screen
+while audio keeps playing.
 
 ## How to wire it up to CarPlay
 

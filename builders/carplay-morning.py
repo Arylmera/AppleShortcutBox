@@ -43,11 +43,12 @@ def build():
         # Numeric conditions use WFNumberValue (compare_with_number),
         # NOT WFConditionalActionString (compare_with). Verified via cherri.
         IfActionExt({"condition": "Is Less Than", "compare_with_number": 7}),
-        # Open Waze.
-        URLAction({"url": "waze://"}),
-        OpenURLAction(),
-        # Open Spotify Liked Songs.
+        # Start Spotify Liked Songs first so music is already playing
+        # before we hand the foreground to Waze.
         URLAction({"url": "spotify:collection:tracks"}),
+        OpenURLAction(),
+        # Then open Waze for navigation/traffic.
+        URLAction({"url": "waze://"}),
         OpenURLAction(),
         # End If.
         EndIfAction(),
