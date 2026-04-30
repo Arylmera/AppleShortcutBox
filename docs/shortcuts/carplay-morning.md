@@ -6,10 +6,12 @@ One-line: when run, opens Waze and starts Spotify Liked Songs — but only if th
 
 1. Gets the current date.
 2. Formats it as the 24-hour hour-of-day (`H` → "0".."23").
-3. If the hour is less than 7:
+3. Saves the hour string into a `Hour` variable.
+4. Coerces `Hour` to a Number type (so the next compare runs numerically, not lexicographically).
+5. If the hour is less than 7:
    - Opens `spotify:collection:tracks` (Spotify Liked Songs) so music starts first.
    - Opens `waze://` (launches Waze) for navigation/traffic.
-4. End If.
+6. End If.
 
 If the hour is ≥ 7, the shortcut does nothing.
 
@@ -63,12 +65,22 @@ documented. Imported and showed `If Formatted Date is less than Number`
 — but the "Number" was empty because string-comparison field doesn't
 populate the numeric input slot.
 
-**v3** (this version): for numeric operators the comparison value goes
-in `WFNumberValue`, NOT `WFConditionalActionString`. Verified via the
-[cherri](https://github.com/electrikmilk/cherri) compiler's source.
-Both libraries miss this distinction; cherri has it. We taught
-`IfActionExt` about both fields so future builders pick the right one
-based on the operator.
+**v3** (python-shortcuts, fixed numeric If): for numeric operators the
+comparison value goes in `WFNumberValue`, NOT `WFConditionalActionString`.
+Verified via the [cherri](https://github.com/electrikmilk/cherri)
+compiler's source. We taught `IfActionExt` about both fields. The GUI
+finally rendered "If Formatted Date is less than 7" — but the gate
+still misfired in practice.
+
+**v4** (this version, hour-coercion fix): `Is Less Than` on a
+string-typed input does **lexicographic** comparison, not numeric. So
+at 10am, "10" < "7" is true (because '1' < '7' as characters), and
+the body fires. The whole day except 7, 8, 9 incorrectly passes the
+gate. Fix: route the formatted hour through a `SetVariable` →
+`NumberCoerce` chain so the If sees a Number-typed input. Now the
+comparison runs numerically. Required adding a custom
+`NumberCoerceAction` since python-shortcuts' `NumberAction` only
+accepts a literal float, not a magic-variable reference.
 
 ## Date created
 

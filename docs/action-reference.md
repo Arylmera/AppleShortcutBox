@@ -153,16 +153,18 @@ builder had this wrong.
 |---|---|---|
 | `WFAppIdentifier` | string | App bundle id (e.g. `"com.spotify.client"`). |
 
-### `is.workflow.actions.number` 🔁 — Number (literal)
+### `is.workflow.actions.number` 🔁 — Number
 
 | Parameter | Type | Notes |
 |---|---|---|
-| `WFNumberActionNumber` | number | A literal number value. |
+| `WFNumberActionNumber` | number OR variable ref (attachment) | If a literal number, the action emits that constant. If a magic-variable reference (token-attributed string), the action emits the referenced value re-typed as Number — that's how you coerce a string output to Number. |
 
-⚠️ This action creates a *literal* number constant. It does NOT coerce a
-string to a number. For string→number coercion, just feed the string
-directly into a comparison action — Shortcuts compares numerically when
-both operands are numeric strings.
+⚠️ **Numeric If conditions need typed-Number inputs.** `Is Less Than`
+on a string runs LEXICOGRAPHIC comparison (so `"10" < "7"` is true
+because `'1' < '7'` as characters). To avoid this, route the value
+through a Set Variable + Number action with a magic-var reference
+before comparing. We use `NumberCoerceAction` in
+`builders/_shortcut_lib.py` for this.
 
 ---
 

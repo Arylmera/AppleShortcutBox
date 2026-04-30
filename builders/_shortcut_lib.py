@@ -47,9 +47,11 @@ from shortcuts.actions import (  # noqa: F401
     ElseAction,
     EndIfAction,
     FormatDateAction,
+    GetVariableAction,
     NotificationAction,
     OpenAppAction,
     OpenURLAction,
+    SetVariableAction,
     SpeakTextAction,
     URLAction,
 )
@@ -108,6 +110,39 @@ class IfActionExt(BaseAction):
     group_id = GroupIDField("GroupingIdentifier")
 
     default_fields = {"WFControlFlowMode": 0}
+
+
+class NumberCoerceAction(BaseAction):
+    """Number action used as a string→Number coercion step.
+
+    Upstream `NumberAction` declares `WFNumberActionNumber` as a
+    `FloatField`, which only accepts a literal Python float. When you
+    instead want to *coerce a previous string output to a Number type*
+    (so a downstream `Is Less Than` comparison runs numerically rather
+    than lexicographically), you need to pass a magic-variable
+    reference into that slot — which the upstream class can't do.
+
+    Usage:
+
+        SetVariableAction({"name": "Hour"}),
+        NumberCoerceAction({"number": "{{Hour}}"}),
+        IfActionExt({"condition": "Is Less Than", "compare_with_number": 7}),
+
+    The `{{Hour}}` syntax is python-shortcuts' way of producing a
+    magic-variable attachment. The Number action then re-emits its
+    input typed as Number, so the next If sees a number-typed input
+    and compares numerically.
+
+    Why this matters: without coercion, "10" < "7" is **true**
+    lexicographically (the leading '1' is < '7' as a character), so
+    the carplay-morning shortcut's hour gate would fire all day except
+    at hours 7, 8, and 9.
+    """
+
+    itype = "is.workflow.actions.number"
+    keyword = "number_coerce"
+
+    number = VariablesField("WFNumberActionNumber")
 
 
 # ---------------------------------------------------------------------------

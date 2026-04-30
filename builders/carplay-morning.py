@@ -22,7 +22,9 @@ from _shortcut_lib import (
     EndIfAction,
     FormatDateAction,
     IfActionExt,
+    NumberCoerceAction,
     OpenURLAction,
+    SetVariableAction,
     URLAction,
     write_shortcut,
 )
@@ -36,9 +38,15 @@ def build():
     return [
         # Get current date.
         DateAction(),
-        # Format it as 24h hour-of-day, e.g. "5". This becomes the
-        # implicit input to the If below.
+        # Format as 24h hour-of-day → string like "5" or "10".
         FormatDateAction({"format": "H"}),
+        # Save into a named variable so we can pass it as a magic-var
+        # reference into the next action.
+        SetVariableAction({"name": "Hour"}),
+        # Coerce to a Number-typed value. Without this, the If below
+        # does LEXICOGRAPHIC comparison ("10" < "7" because '1' < '7'
+        # as characters) and fires the body all day except at 7/8/9.
+        NumberCoerceAction({"number": "{{Hour}}"}),
         # If hour < 7 ...
         # Numeric conditions use WFNumberValue (compare_with_number),
         # NOT WFConditionalActionString (compare_with). Verified via cherri.
